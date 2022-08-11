@@ -388,7 +388,7 @@ def check_create2_deployed_safes_task() -> None:
             timeout=LOCK_TIMEOUT,
         ):
             ethereum_client = EthereumClientProvider()
-            confirmations = 6
+            confirmations = 2
             current_block_number = ethereum_client.current_block_number
             for safe_creation2 in SafeCreation2.objects.pending_to_check():
                 safe_address = safe_creation2.safe_id

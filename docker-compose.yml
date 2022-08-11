@@ -28,6 +28,7 @@ services:
       POSTGRES_PASSWORD: postgres
 
   web:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: docker/web/Dockerfile
@@ -44,6 +45,7 @@ services:
     command: docker/web/run_web.sh
 
   worker: &worker
+    platform: linux/amd64
     build:
       context: .
       dockerfile: docker/web/Dockerfile
@@ -55,6 +57,7 @@ services:
     command: docker/web/celery/worker/run.sh
 
   scheduler:
+    platform: linux/amd64
     <<: *worker
     command: docker/web/celery/scheduler/run.sh
 
