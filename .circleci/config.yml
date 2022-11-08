@@ -21,6 +21,7 @@ jobs:
       LOCAL_IMAGE: relay
     working_directory: ~/repo
     steps:
+      - checkout
       - setup_remote_docker:
           version: 20.10.7
       - attach_workspace:
@@ -41,6 +42,7 @@ jobs:
       LOCAL_IMAGE: relay
     working_directory: ~/repo
     steps:
+      - checkout
       - setup_remote_docker:
           version: 20.10.7
       - attach_workspace:
@@ -107,5 +109,5 @@ workflows:
           filters:
             <<: *tagged-filter
             branches:
-              only: safe-relay-fork
+              ignore: /.*/
           context: docker-credentials
