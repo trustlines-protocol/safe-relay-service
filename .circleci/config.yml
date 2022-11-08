@@ -32,6 +32,8 @@ jobs:
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
       - run:
           name: Upload tagged version
+          environment:
+            DOCKERHUB_PROJECT: safe-relay-service
           command: |
             bash scripts/deploy_docker.sh staging
 
@@ -53,6 +55,8 @@ jobs:
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
       - run:
           name: Upload tagged release
+          environment:
+            DOCKERHUB_PROJECT: safe-relay-service
           command: |
              bash scripts/deploy_docker.sh $CIRCLE_TAG
 
