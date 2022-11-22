@@ -261,6 +261,7 @@ class SafeMultisigTxResponseSerializer(serializers.Serializer):
     nonce = serializers.IntegerField(min_value=0)
     safe_tx_hash = Sha3HashField()
     tx_hash = serializers.SerializerMethodField()
+    meta_tx_successful = serializers.BooleanField(required=False)
     transaction_hash = serializers.SerializerMethodField(
         method_name="get_tx_hash"
     )  # Retro compatibility
