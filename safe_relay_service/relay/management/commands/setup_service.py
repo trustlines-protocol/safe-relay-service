@@ -30,7 +30,7 @@ class Command(BaseCommand):
         CeleryTaskConfiguration(
             "safe_relay_service.relay.tasks.deploy_safes_task",
             "Deploy Safes",
-            1,
+            5,
             IntervalSchedule.SECONDS,
         ),
         CeleryTaskConfiguration(
@@ -42,7 +42,7 @@ class Command(BaseCommand):
         CeleryTaskConfiguration(
             "safe_relay_service.relay.tasks.check_create2_deployed_safes_task",
             "Check and deploy Create2 Safes",
-            1,
+            5,
             IntervalSchedule.SECONDS,
         ),
         CeleryTaskConfiguration(
