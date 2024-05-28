@@ -113,7 +113,7 @@ class SafeCreationService:
         self.proxy_factory = ProxyFactory(proxy_factory_address, self.ethereum_client)
         self.default_callback_handler = default_callback_handler
         self.funder_account = Account.from_key(safe_funder_private_key)
-        self.safe_fixed_creation_cost = safe_fixed_creation_cost
+        self.safe_fixed_creation_cost = 0
 
     def _get_token_eth_value_or_raise(self, address: str) -> float:
         """
@@ -198,9 +198,9 @@ class SafeCreationService:
         :raises: InvalidPaymentToken
         """
 
-        payment_token = payment_token or NULL_ADDRESS
-        payment_token_eth_value = self._get_token_eth_value_or_raise(payment_token)
-        gas_price: int = self._get_configured_gas_price()
+        payment_token = NULL_ADDRESS
+        payment_token_eth_value = 0
+        gas_price: int = 0
         current_block_number = self.ethereum_client.current_block_number
         logger.debug("Building safe create2 tx with gas price %d", gas_price)
         safe_creation_tx = Safe.build_safe_create2_tx(
@@ -212,7 +212,7 @@ class SafeCreationService:
             threshold,
             gas_price,
             payment_token,
-            payment_receiver=self.funder_account.address,
+            payment_receiver=NULL_ADDRESS,
             fallback_handler=self.default_callback_handler,
             payment_token_eth_value=payment_token_eth_value,
             fixed_creation_cost=self.safe_fixed_creation_cost,
@@ -249,10 +249,10 @@ class SafeCreationService:
             if safe_creation_tx.payment_token == NULL_ADDRESS
             else safe_creation_tx.payment_token,
             payment=safe_creation_tx.payment,
-            payment_receiver=safe_creation_tx.payment_receiver,
+            payment_receiver=NULL_ADDRESS,
             setup_data=safe_creation_tx.safe_setup_data,
             gas_estimated=safe_creation_tx.gas,
-            gas_price_estimated=safe_creation_tx.gas_price,
+            gas_price_estimated=self._get_configured_gas_price(),
         )
 
     def deploy_create2_safe_tx(self, safe_address: str) -> SafeCreation2:
@@ -271,7 +271,7 @@ class SafeCreationService:
             )
             return safe_creation2
 
-        self._check_safe_balance(safe_creation2)
+        # self._check_safe_balance(safe_creation2)
 
         setup_data = HexBytes(safe_creation2.setup_data.tobytes())
         proxy_factory = ProxyFactory(safe_creation2.proxy_factory, self.ethereum_client)
@@ -326,7 +326,7 @@ class SafeCreationService:
         ethereum_tx: EthereumTx = EthereumTx.objects.get(tx_hash=safe_creation2.tx_hash)
         assert ethereum_tx, "Ethereum tx cannot be missing"
 
-        self._check_safe_balance(safe_creation2)
+        # self._check_safe_balance(safe_creation2)
 
         setup_data = HexBytes(safe_creation2.setup_data.tobytes())
         proxy_factory = ProxyFactory(safe_creation2.proxy_factory, self.ethereum_client)
@@ -364,9 +364,9 @@ class SafeCreationService:
         :return:
         :raises: InvalidPaymentToken
         """
-        payment_token = payment_token or NULL_ADDRESS
-        payment_token_eth_value = self._get_token_eth_value_or_raise(payment_token)
-        gas_price = self._get_configured_gas_price()
+        payment_token = NULL_ADDRESS
+        payment_token_eth_value = 0
+        gas_price = 0
         fixed_creation_cost = self.safe_fixed_creation_cost
         return Safe.estimate_safe_creation_2(
             self.ethereum_client,
@@ -375,7 +375,7 @@ class SafeCreationService:
             number_owners,
             gas_price,
             payment_token,
-            payment_receiver=self.funder_account.address,
+            payment_receiver=NULL_ADDRESS,
             fallback_handler=self.default_callback_handler,
             payment_token_eth_value=payment_token_eth_value,
             fixed_creation_cost=fixed_creation_cost,

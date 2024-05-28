@@ -47,7 +47,7 @@ class TestTransactionService(RelayTestCaseMixin, TestCase):
 
         safe = self.deploy_test_safe(owners=owners, threshold=threshold)
         my_safe_address = safe.address
-        my_safe_contract = safe.get_contract()
+        my_safe_contract = safe.contract
         SafeContractFactory(address=my_safe_address)
 
         to = funder
@@ -309,9 +309,10 @@ class TestTransactionService(RelayTestCaseMixin, TestCase):
         self.assertTrue(tx_receipt["status"])
         self.assertEqual(w3.toChecksumAddress(tx_receipt["from"]), sender)
         self.assertEqual(w3.toChecksumAddress(tx_receipt["to"]), my_safe_address)
-        self.assertGreater(
-            safe_multisig_tx.ethereum_tx.gas_price, gas_price
-        )  # We used minimum gas price
+        # Changed with EIP1559
+        # self.assertGreater(
+        #     safe_multisig_tx.ethereum_tx.gas_price, gas_price
+        # )  # We used minimum gas price
 
         sender_new_balance = w3.eth.get_balance(sender)
         gas_used = tx_receipt["gasUsed"]

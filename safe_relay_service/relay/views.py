@@ -7,6 +7,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from eth_account.account import Account
+from gnosis.eth import EthereumClientProvider
+from gnosis.eth.contracts import get_safe_V1_3_0_contract, get_safe_contract
+from hexbytes import HexBytes
 from rest_framework import filters, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.generics import CreateAPIView, ListAPIView
@@ -51,6 +54,27 @@ from .services.transaction_service import (
 from .tasks import fund_deployer_task
 
 logger = logging.getLogger(__name__)
+
+
+def is_meta_tx_successful(
+        identity_address, meta_tx_hash, *, from_block=0, to_block="latest"
+):
+    ethereum_client = EthereumClientProvider()
+    identity_contract = get_safe_contract(ethereum_client.w3, identity_address)
+
+    success_filter = identity_contract.events.ExecutionSuccess.createFilter(fromBlock=from_block,
+                                                                            address=identity_address,
+                                                                            toBlock=to_block,
+                                                                            argument_filters={
+                                                                                "txHash": HexBytes(meta_tx_hash)})
+    meta_tx_execution_logs = success_filter.get_all_entries()
+
+    assert len(meta_tx_execution_logs) <= 1
+
+    if len(meta_tx_execution_logs) == 1:
+        return True
+
+    return False
 
 
 def custom_exception_handler(exc, context):
@@ -431,6 +455,25 @@ class SafeMultisigTxView(SafeListApiView):
 
     def get_queryset(self):
         return SafeMultisigTx.objects.filter(safe=self.kwargs["address"])
+
+    @swagger_auto_schema(
+        responses={
+            201: SafeMultisigTxResponseSerializer(),
+            400: "Data not valid",
+            404: "Safe not found",
+            422: "Safe address checksum not valid/Tx not valid",
+        }
+    )
+    def get(self, request, address):
+        response = super().get(request, address)
+
+        for x in range(len(response.data["results"])):
+            tx_hash = response.data["results"][x]["safe_tx_hash"]
+            response.data["results"][x]["meta_tx_successful"] = is_meta_tx_successful(
+                address, tx_hash
+            )
+
+        return response
 
     @swagger_auto_schema(
         responses={

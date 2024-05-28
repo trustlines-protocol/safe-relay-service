@@ -1,0 +1,117 @@
+version: 2.1
+
+templates:
+  tagged-filter: &tagged-filter
+    tags:
+      only: /^[0-9]+(\.[0-9]+)*((a|b|rc)[0-9]+)?(\.dev[0-9]+)?/
+
+executors:
+  ubuntu-builder:
+    docker:
+      - image: trustlines/builder:master61
+    resource_class:
+      medium
+    working_directory: ~/repo
+
+jobs:
+  deploy-docker-image:
+    executor: ubuntu-builder
+    environment:
+      DOCKER_REPO: trustlines/relay
+      LOCAL_IMAGE: relay
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.7
+      - attach_workspace:
+          at: '~'
+      - run:
+          name: Login to dockerhub
+          command: |
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+      - run:
+          name: Upload tagged version
+          environment:
+            DOCKERHUB_PROJECT: safe-relay-service
+          command: |
+            bash scripts/deploy_docker.sh staging
+
+  deploy-docker-image-release:
+    executor: ubuntu-builder
+    environment:
+      DOCKER_REPO: trustlines/relay
+      LOCAL_IMAGE: relay
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.7
+      - attach_workspace:
+          at: "~"
+      - run:
+          name: Login to dockerhub
+          command: |
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+      - run:
+          name: Upload tagged release
+          environment:
+            DOCKERHUB_PROJECT: safe-relay-service
+          command: |
+             bash scripts/deploy_docker.sh $CIRCLE_TAG
+
+#  run-end2end-tests:
+#    executor: ubuntu-builder
+#    environment:
+#      DOCKER_REPO: trustlines/relay
+#      LOCAL_IMAGE: relay
+#    working_directory: ~
+#    steps:
+#      - config-path
+#      - setup_remote_docker:
+#          version: 20.10.7
+#      - attach_workspace:
+#          at: '~'
+#      - run:
+#          name: Checkout end2end repo
+#          command: |
+#            git clone https://github.com/trustlines-protocol/end2end.git
+#      - run:
+#          name: Load docker image
+#          command: |
+#            docker load --input ~/images/$LOCAL_IMAGE.tar
+#      - run:
+#          name: run end2end tests
+#          command: |
+#            docker tag $LOCAL_IMAGE $DOCKER_REPO
+#            cd end2end
+#            ./run-e2e.sh
+#      - run:
+#          name: copy out the end2end coverage file from remote docker to host
+#          command: |
+#            scp circleci@remote-docker:project/end2end/end2end-coverage/coverage.xml /home/circleci/repo/coverage.xml
+#      - run:
+#          name: upload end2end codecov
+#          command: |
+#            cd ~/repo
+#            codecov --file coverage.xml
+
+
+
+workflows:
+  version: 2
+  default:
+    jobs:
+
+      - deploy-docker-image:
+          filters:
+            branches:
+              only: safe-relay-fork
+          context: docker-credentials
+
+      - deploy-docker-image-release:
+          filters:
+            <<: *tagged-filter
+            branches:
+              ignore: /.*/
+          context: docker-credentials

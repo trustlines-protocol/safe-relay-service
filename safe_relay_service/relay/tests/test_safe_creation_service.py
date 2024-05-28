@@ -46,7 +46,7 @@ class TestSafeCreationService(RelayTestCaseMixin, TestCase):
         self.assertIsNone(safe_creation_2.tx_hash)
         self.assertEqual(
             safe_creation_2.payment_receiver,
-            self.safe_creation_service.funder_account.address,
+            NULL_ADDRESS
         )
         with self.assertRaisesMessage(
             NotEnoughFundingForCreation, str(safe_creation_2.payment)

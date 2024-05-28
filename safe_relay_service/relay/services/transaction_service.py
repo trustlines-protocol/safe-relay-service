@@ -215,19 +215,19 @@ class TransactionService:
     def _estimate_tx_gas_price(
         self, base_gas_price: int, gas_token: Optional[str] = None
     ) -> int:
-        if gas_token and gas_token != NULL_ADDRESS:
-            try:
-                gas_token_model = Token.objects.get(address=gas_token, gas=True)
-                estimated_gas_price = gas_token_model.calculate_gas_price(
-                    base_gas_price
-                )
-            except Token.DoesNotExist:
-                raise InvalidGasToken("Gas token %s not found" % gas_token)
-        else:
-            estimated_gas_price = base_gas_price
+        # if gas_token and gas_token != NULL_ADDRESS:
+        #     try:
+        #         gas_token_model = Token.objects.get(address=gas_token, gas=True)
+        #         estimated_gas_price = gas_token_model.calculate_gas_price(
+        #             base_gas_price
+        #         )
+        #     except Token.DoesNotExist:
+        #         raise InvalidGasToken("Gas token %s not found" % gas_token)
+        # else:
+        #     estimated_gas_price = base_gas_price
 
         # FIXME Remove 2 / 3, workaround to prevent frontrunning
-        return int(estimated_gas_price * 2 / 3)
+        return 0
 
     def _get_configured_gas_price(self) -> int:
         """
@@ -298,7 +298,7 @@ class TransactionService:
             gas_price,
             gas_token or NULL_ADDRESS,
             last_used_nonce,
-            self.tx_sender_account.address,
+            NULL_ADDRESS,
         )
 
     def estimate_tx_for_all_tokens(
@@ -458,15 +458,15 @@ class TransactionService:
 
         safe = Safe(safe_address, self.ethereum_client)
         data = data or b""
-        gas_token = gas_token or NULL_ADDRESS
-        refund_receiver = refund_receiver or NULL_ADDRESS
+        gas_token = NULL_ADDRESS
+        refund_receiver = NULL_ADDRESS
         to = to or NULL_ADDRESS
 
         # Make sure refund receiver is set to 0x0 so that the contract refunds the gas costs to tx.origin
         if not self._check_refund_receiver(refund_receiver):
             raise InvalidRefundReceiver(refund_receiver)
 
-        self._check_safe_gas_price(gas_token, gas_price)
+        # self._check_safe_gas_price(gas_token, gas_price)
 
         # Make sure proxy contract is ours
         if not self.proxy_factory.check_proxy_code(safe_address):
@@ -478,29 +478,29 @@ class TransactionService:
             raise InvalidMasterCopyAddress(safe_master_copy_address)
 
         # Check enough funds to pay for the gas
-        if not safe.check_funds_for_tx_gas(safe_tx_gas, base_gas, gas_price, gas_token):
-            raise NotEnoughFundsForMultisigTx
+        # if not safe.check_funds_for_tx_gas(safe_tx_gas, base_gas, gas_price, gas_token):
+        #     raise NotEnoughFundsForMultisigTx
 
         threshold = safe.retrieve_threshold()
         number_signatures = len(signatures) // 65  # One signature = 65 bytes
         if number_signatures < threshold:
             raise SignaturesNotFound("Need at least %d signatures" % threshold)
 
-        safe_tx_gas_estimation = safe.estimate_tx_gas(to, value, data, operation)
-        safe_base_gas_estimation = safe.estimate_tx_base_gas(
-            to, value, data, operation, gas_token, safe_tx_gas_estimation
-        )
-        if safe_tx_gas < safe_tx_gas_estimation or base_gas < safe_base_gas_estimation:
-            raise InvalidGasEstimation(
-                "Gas should be at least equal to safe-tx-gas=%d and base-gas=%d. Current is "
-                "safe-tx-gas=%d and base-gas=%d"
-                % (
-                    safe_tx_gas_estimation,
-                    safe_base_gas_estimation,
-                    safe_tx_gas,
-                    base_gas,
-                )
-            )
+        # safe_tx_gas_estimation = safe.estimate_tx_gas(to, value, data, operation)
+        # safe_base_gas_estimation = safe.estimate_tx_base_gas(
+        #     to, value, data, operation, gas_token, safe_tx_gas_estimation
+        # )
+        # if safe_tx_gas < safe_tx_gas_estimation or base_gas < safe_base_gas_estimation:
+        #     raise InvalidGasEstimation(
+        #         "Gas should be at least equal to safe-tx-gas=%d and base-gas=%d. Current is "
+        #         "safe-tx-gas=%d and base-gas=%d"
+        #         % (
+        #             safe_tx_gas_estimation,
+        #             safe_base_gas_estimation,
+        #             safe_tx_gas,
+        #             base_gas,
+        #         )
+        #     )
 
         # We use fast tx gas price, if not txs could be stuck
         tx_gas_price = self._get_configured_gas_price()
